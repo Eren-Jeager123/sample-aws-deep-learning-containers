@@ -121,9 +121,9 @@ def train_func(config):
             step_start = time.perf_counter()
 
         optimizer.zero_grad()
-        loss = model(input_ids=input_ids, labels=input_ids).loss
-        loss.backward()  # FSDP reduce-scatters gradients across nodes here, over EFA.
-        optimizer.step()  # FSDP all-gathers the full parameters across nodes here.
+        loss = model(input_ids=input_ids, labels=input_ids).loss  # FSDP all-gathers each unit's parameters across nodes.
+        loss.backward()  # FSDP re-gathers parameters and reduce-scatters gradients across nodes, over EFA.
+        optimizer.step()  # Updates only this rank's shard; no cross-node traffic.
 
         if is_timed:
             torch.cuda.synchronize(device)
